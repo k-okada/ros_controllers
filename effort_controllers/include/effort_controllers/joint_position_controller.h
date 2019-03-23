@@ -133,6 +133,11 @@ public:
   /*!
    * \brief Issues commands to the joint. Should be called at regular intervals
    */
+  void update(double command_position, double command_velocity, bool has_velocity, const ros::Time& time, const ros::Duration& period, hardware_interface::JointHandle joint, urdf::JointConstSharedPtr joint_urdf, control_toolbox::Pid &pid_controller, realtime_tools::RealtimePublisher< control_msgs::JointControllerState> *controller_state_publisher);
+
+  /*!
+   * \brief Issues commands to the joint. Should be called at regular intervals
+   */
   void update(const ros::Time& time, const ros::Duration& period);
 
   /**
@@ -171,6 +176,8 @@ public:
   realtime_tools::RealtimeBuffer<Commands> command_;
   Commands command_struct_; // pre-allocated memory that is re-used to set the realtime buffer
 
+  std::vector<hardware_interface::JointHandle> mimic_joints_;
+  std::vector<urdf::JointConstSharedPtr> mimic_joint_urdfs_;
 private:
   int loop_count_;
   control_toolbox::Pid pid_controller_;       /**< Internal PID controller. */
@@ -178,8 +185,12 @@ private:
   boost::scoped_ptr<
     realtime_tools::RealtimePublisher<
       control_msgs::JointControllerState> > controller_state_publisher_ ;
-
   ros::Subscriber sub_command_;
+
+  std::vector<control_toolbox::Pid> mimic_pid_controllers_;
+  std::vector<boost::shared_ptr<
+                realtime_tools::RealtimePublisher<
+                  control_msgs::JointControllerState> > > mimic_controller_state_publishers_ ;
 
   /**
    * \brief Callback from /command subscriber for setpoint
@@ -193,6 +204,13 @@ private:
    */
   void enforceJointLimits(double &command);
 
+  /**
+   * \brief Check that the command is within the hard limits of the joint. Checks for joint
+   *        type first. Sets command to limit if out of bounds.
+   * \param joint_urdf - pointer tot the joint to test
+   * \param command - the input to test
+   */
+  void enforceJointLimits(urdf::JointConstSharedPtr joint_urdf, double &command);
 };
 
 } // namespace

@@ -112,6 +112,44 @@ namespace effort_controllers
       }
     }
 
+  // Setup for mimic joints
+  ROS_INFO("hoge");
+  using namespace XmlRpc;
+  XmlRpcValue xml_array;
+  if (n.getParam("mimic_joints", xml_array))
+  {
+    if (xml_array.getType() != XmlRpcValue::TypeStruct) {
+      ROS_ERROR("mimic_joints must be the struct of joint/type/pid");
+      return false;
+    }
+    for(XmlRpcValue::ValueStruct::const_iterator it = xml_array.begin(); it != xml_array.end(); ++it) {
+      std::string joint_name = (std::string)(it->first);
+      std::string mimic_joint_name = xml_array[joint_name]["mimic"];
+      ROS_ERROR_STREAM("joint name" << joint_name);
+      ROS_ERROR_STREAM("mimic name" << mimic_joint_name);
+      ROS_INFO_STREAM("Loading mimic joint " << joint_name);
+#if 0
+      mimic_joint_urdfs_.push_back(urdf.getJoint(mimic_joint_name));
+      if (!mimic_joint_urdfs_.back())
+      {
+        ROS_ERROR("Could not find joint '%s' in urdf", mimic_joint_name.c_str());
+        return false;
+      }
+      // Get joint handle from hardware interface
+      mimic_joints_.push_back(robot->getHandle(mimic_joint_name));
+      // create controller andpublisher
+      mimic_pid_controllers_.push_back(control_toolbox::Pid());
+      if(!mimic_pid_controllers_.back().init(ros::NodeHandle(n, "mimic_joints/"+(std::string)(it->first)+"/pid")))
+      {
+        ROS_WARN_STREAM("failed to load pid for " << mimic_joint_name << ". use default settings");
+        mimic_pid_controllers_.back().setGains(pid_controller_.getGains());
+      }
+      mimic_controller_state_publishers_.push_back(boost::shared_ptr<realtime_tools::RealtimePublisher<control_msgs::JointControllerState> >(new realtime_tools::RealtimePublisher<control_msgs::JointControllerState>(n, (std::string)(it->first)+"/state", 1)));
+      ROS_INFO_STREAM("Loading mimic joint " << (std::string)(it->first));
+#endif
+    }
+  }
+
     commands_buffer_.writeFromNonRT(std::vector<double>(n_joints_, 0.0));
 
     sub_command_ = n.subscribe<std_msgs::Float64MultiArray>("command", 1, &JointGroupPositionController::commandCB, this);
